@@ -1,0 +1,3 @@
+[submodule "nupic.research"]
+	path = nupic.research
+	url = https://github.com/numenta/nupic.research.git
