@@ -1,0 +1,22 @@
+# Install nupic.research, nupic.torch and nupic.tensorflow directly from github
+# master branch
+nupic.torch @ git+https://github.com/numenta/nupic.torch.git
+nupic.tensorflow @ git+https://github.com/numenta/nupic.tensorflow.git
+nupic.research @ git+https://github.com/numenta/nupic.research.git
+
+awscli
+boto3
+elasticsearch
+jupyter
+librosa==0.7.1
+matplotlib
+numpy
+pandas
+python-dotenv
+ray[dashboard,debug]==0.7.5
+requests
+scikit-image
+seaborn>=0.9.0
+tabulate
+torchvision==0.4.1
+tqdm
