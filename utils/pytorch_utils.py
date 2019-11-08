@@ -109,6 +109,7 @@ def train_net(optimizer, model, criterion, mb_size, x, y, t,
 
     for ep in range(train_ep):
 
+        model.active_perc_list = []
         model.train()
 
         print("training ep: ", ep)
@@ -145,6 +146,10 @@ def train_net(optimizer, model, criterion, mb_size, x, y, t,
                 )
 
         cur_ep += 1
+
+        print("Average active units: {}%, std {}%: ".format(
+              np.mean(model.active_perc_list), np.std(model.active_perc_list))
+        )
 
     return ave_loss, acc
 

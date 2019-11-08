@@ -24,38 +24,74 @@ from __future__ import division
 from __future__ import absolute_import
 
 import torch.nn as nn
+import torch
+
+from nupic.torch.modules import (
+    KWinners2d, KWinners
+)
+
+from nupic.research.frameworks.pytorch.modules import (
+    KWinners2dLocal
+)
 
 
 class SimpleCNN(nn.Module):
 
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, sparsify=False, percent_on=0.3,
+                 k_inference_factor=1.5, boost_strength=1.0,
+                 boost_strength_factor=0.9, duty_cycle_period=1000,
+                 hidden_units=512, dropout=0.5):
         super(SimpleCNN, self).__init__()
 
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, kernel_size=3, padding=0),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(p=0.25),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=0),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(p=0.25)
-        )
-        self.classifier = nn.Sequential(
-            nn.Linear(64 * 6 * 6, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(512, num_classes)
-        )
+        self.active_perc_list = []
+
+        if not sparsify:
+            self.features = nn.Sequential(
+                nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=0),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=dropout)
+            )
+            self.classifier = nn.Sequential(
+                nn.Linear(64 * 24 * 24, hidden_units),
+                nn.ReLU(inplace=True),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_units, num_classes)
+            )
+
+        else:
+            self.features = nn.Sequential(
+                nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=0),
+                nn.ReLU(inplace=True),
+                KWinners2dLocal(
+                    64, percent_on, k_inference_factor,
+                    boost_strength, boost_strength_factor, duty_cycle_period),
+                nn.Dropout(dropout),
+
+            )
+            self.classifier = nn.Sequential(
+                nn.Linear(64 * 24 * 24, hidden_units),
+                nn.ReLU(inplace=True),
+                KWinners(
+                    hidden_units, percent_on, k_inference_factor,
+                    boost_strength, boost_strength_factor, duty_cycle_period),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_units, num_classes)
+            )
 
     def forward(self, x):
+
+        x = x.unsqueeze(1)
         x = self.features(x)
-        x = x.view(x.size(0), 64 * 6 * 6)
+        # print(x.size())
+        # computing active units
+        self.active_perc_list.append(
+            torch.nonzero(x.data).size(0) /
+            (x.size(0) * x.size(1) * x.size(2) * x.size(3)) * 100
+        )
+        # print(self.active_perc_list[-1])
+        x = x.view(-1, 64 * 24 * 24)
         x = self.classifier(x)
+
         return x
 
 
