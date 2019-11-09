@@ -2,20 +2,18 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2019. Vincenzo Lomonaco. All rights reserved.                  #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 7-12-2017                                                              #
+# Date: 8-11-2019                                                              #
 # Author: Vincenzo Lomonaco                                                    #
 # E-mail: vincenzo.lomonaco@unibo.it                                           #
 # Website: vincenzolomonaco.com                                                #
 ################################################################################
 
 """
-
-This is the definition od the Mid-caffenet high resolution in Pythorch
-
+Plain CNN model with KWinners implemented in PyTorch.
 """
 
 # Python 2-3 compatible
@@ -83,6 +81,7 @@ class SimpleCNN(nn.Module):
         x = x.unsqueeze(1)
         x = self.features(x)
         # print(x.size())
+
         # computing active units
         self.active_perc_list.append(
             torch.nonzero(x.data).size(0) /

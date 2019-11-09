@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
-# Copyrights licensed under the MIT License.                                   #
+# Copyright (c) 2019. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 28-04-2017                                                             #
+# Date: 8-11-2019                                                              #
 # Author: Vincenzo Lomonaco                                                    #
 # E-mail: vincenzo.lomonaco@unibo.it                                           #
 # Website: vincenzolomonaco.com                                                #
 ################################################################################
 
-""" Different utils which can be used for MNIST """
+""" Different utils which can be used for MNIST. """
 
 # Python 2-3 compatible
 from __future__ import print_function

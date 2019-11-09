@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2019. ContinualAI. All rights reserved.                        #
+# Copyright (c) 2019. Vincenzo Lomonaco. All rights reserved.                  #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 15-10-2019                                                             #
+# Date: 8-11-2019                                                              #
 # Author: Vincenzo Lomonaco                                                    #
 # E-mail: vincenzo.lomonaco@unibo.it                                           #
 # Website: vincenzolomonaco.com                                                #
 ################################################################################
 
 """
-Starting example using avalanche and the naive strategy on Permuted MNIST.
+Starting example on the Continual Permuted MNIST benchmark.
 """
 
 # Python 2-3 compatible
