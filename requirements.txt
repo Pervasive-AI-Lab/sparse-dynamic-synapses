@@ -1,8 +1,6 @@
-# Install nupic.research, nupic.torch and nupic.tensorflow directly from github
+# Install nupic.torch directly from github
 # master branch
 nupic.torch @ git+https://github.com/numenta/nupic.torch.git
-nupic.tensorflow @ git+https://github.com/numenta/nupic.tensorflow.git
-nupic.research @ git+https://github.com/numenta/nupic.research.git
 
 awscli
 boto3

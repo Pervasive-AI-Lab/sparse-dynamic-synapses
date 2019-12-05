@@ -12,7 +12,9 @@
 # Website: vincenzolomonaco.com                                                #
 ################################################################################
 
-""" Continual Data Loader for the MNIST continual learning benchmark. """
+"""
+Continual Data Loader for the MNIST continual learning benchmark.
+"""
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -25,18 +27,28 @@ from .mnist import MNIST
 
 
 class CMNIST(object):
-    """ Continuous MNIST benchmark data loader. """
+    """
+    Continual MNIST benchmark data loader.
+    """
 
     def __init__(self, bp=None, num_batch=10, mode='perm', task_sep=True,
                  eval_protocol=None):
 
-        """" Initialize Object. mode={perm|split|rot}. """
+        """
+        Initialize Object. mode={perm|split|rot}.
+        """
 
         self.bp = bp
         self.num_batch = num_batch
         self.iter = 0
         self.task_sep = task_sep
         self.eval_protocol = eval_protocol
+        self.mode = mode
+
+        # asserts and checks here
+        if mode == 'split' and num_batch > 5:
+            print("Too many batches for Split MNIST")
+            raise Exception
 
         # Getting root logger
         self.log = logging.getLogger('mylogger')
@@ -54,10 +66,23 @@ class CMNIST(object):
         print("preparing CL benchmark...")
         for i in range(self.num_batch):
 
-            train_x, test_x = self.mnist.permute_mnist(seed=i)
-            train_y, test_y = self.train_set[1], self.test_set[1]
-            self.all_train_sets.append([train_x, train_y])
-            self.all_test_sets.append([test_x, test_y])
+            if self.mode == 'perm':
+
+                train_x, test_x = self.mnist.permute_mnist(seed=i)
+                train_y, test_y = self.train_set[1], self.test_set[1]
+                self.all_train_sets.append([train_x, train_y])
+                self.all_test_sets.append([test_x, test_y])
+
+            elif self.mode == 'split':
+
+                cur_classes = [i * 2, i * 2 + 1]
+                train, test = self.mnist.reduce_mnist(cur_classes)
+                self.all_train_sets.append(train)
+                self.all_test_sets.append(test)
+
+            else:
+                raise NotImplemented
+
             if self.task_sep:
                 self.tasks_id.append(i)
             else:
@@ -67,8 +92,10 @@ class CMNIST(object):
         return self
 
     def __next__(self):
-        """ Next batch based on the object parameter which can be also changed
-            from the previous iteration. """
+        """
+        Next batch based on the object parameter which can be also changed
+        from the previous iteration.
+        """
 
         if self.iter == self.num_batch:
             raise StopIteration
@@ -103,7 +130,7 @@ class CMNIST(object):
 if __name__ == "__main__":
 
     # Create the dataset object
-    cmnist = CMNIST()
+    cmnist = CMNIST(num_batch=5, mode='split')
 
     test_full = cmnist.get_full_testset()
 
@@ -113,7 +140,6 @@ if __name__ == "__main__":
         # You can later train with SGD indexing train_x and train_y properly.
 
         # do your computation here...
-
-        test_grow = cmnist.get_growing_testset()
-        pass
+        print("Shapes X: ", x.shape)
+        print("Shapes y: ", y.shape)
 

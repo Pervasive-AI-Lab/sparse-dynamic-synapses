@@ -12,7 +12,9 @@
 # Website: vincenzolomonaco.com                                                #
 ################################################################################
 
-""" Different utils which can be used for MNIST. """
+"""
+Several utils which can be used for MNIST.
+"""
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -25,7 +27,6 @@ import pickle
 from copy import deepcopy
 from PIL import Image
 import os
-import matplotlib.pyplot as plt
 import sys
 
 if sys.version_info[0] >= 3:
@@ -45,10 +46,18 @@ filename = [
 
 
 class MNIST(object):
-
-    """MNIST static dataset and basic utilities"""
+    """
+    MNIST static dataset and basic utilities
+    """
 
     def __init__(self, data_loc='data/'):
+        """
+        Init method for the MNIST class.
+
+            Args:
+                data_loc (str): realtive path in which to download and store
+                                mnist data.
+        """
 
         if os.path.isabs(data_loc):
             path = data_loc
@@ -80,6 +89,12 @@ class MNIST(object):
         self.test_set = [mnist["test_images"], mnist["test_labels"]]
 
     def get_data(self):
+        """
+        Simple method to get train and test set.
+
+            Returns:
+                list: train and test sets composed of images and labels.
+        """
 
         return [self.train_set, self.test_set]
 
@@ -87,6 +102,11 @@ class MNIST(object):
         """
         Given the train and test set (no labels), permute pixels of each img
         the same way.
+
+            Args:
+                seed (int): seed for the random generator.
+            Returns:
+                list: train and test images, permuted.
         """
 
         # we take only the images
@@ -111,6 +131,11 @@ class MNIST(object):
         """
         Given the train and test set (no labels), rotate each img the
         same way.
+
+            Args:
+                rotation (int): degrees of rotation of the images.
+            Returns:
+                list: rotated train and test images.
         """
 
         # we take only the images
@@ -124,7 +149,42 @@ class MNIST(object):
 
         return rot_mnist
 
+    def reduce_mnist(self, classes):
+        """
+        Given the train and test set (with labels), it returns a subset of it
+        with just the classes requested
+
+            Args:
+                classes (int): classes to maintain. All the rest will be
+                removed.
+            Returns:
+                list: new dataset composed of the reduced train and test sets.
+        """
+
+        idxs_train = np.argwhere(
+            np.logical_or(
+                self.train_set[1] < classes[0], self.train_set[1] > classes[1]
+            )
+        )
+        idxs_test = np.argwhere(
+            np.logical_or(
+                self.test_set[1] < classes[0], self.test_set[1] > classes[1]
+            )
+        )
+
+        new_train_y = np.delete(self.train_set[1], idxs_train)
+        new_test_y = np.delete(self.test_set[1], idxs_test)
+        new_train_x = np.delete(self.train_set[0], idxs_train, axis=0)
+        new_test_x = np.delete(self.test_set[0], idxs_test, axis=0)
+
+        new_dataset = [[new_train_x, new_train_y], [new_test_x, new_test_y]]
+
+        return new_dataset
+
     def download_mnist(self):
+        """
+        Download MNIST data from the official website.
+        """
 
         base_url = "http://yann.lecun.com/exdb/mnist/"
         for name in filename:
@@ -133,6 +193,9 @@ class MNIST(object):
         print("Download complete.")
 
     def save_mnist(self):
+        """
+        Extract and save MNIST data as a pickled file.
+        """
 
         mnist = {}
         for name in filename[:2]:
@@ -160,6 +223,3 @@ if __name__ == '__main__':
     # let's see some images
     print(mnist_data[0][0][0].shape)
     print(perm_mnist[0][0].shape)
-    imgplot = plt.imshow(mnist_data[0][0][300].squeeze(), cmap='gray')
-    # imgplot = plt.imshow(perm_mnist[0][0], cmap='gray')
-    plt.show()

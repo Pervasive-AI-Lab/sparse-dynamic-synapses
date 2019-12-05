@@ -13,10 +13,9 @@
 ################################################################################
 
 """
-
-General useful functions for pytorch.
-
+General useful functions for machine learning with Pytorch.
 """
+
 # Python 2-3 compatible
 from __future__ import print_function
 from __future__ import division
@@ -30,7 +29,23 @@ from .common import pad_data, shuffle_in_unison
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
                  use_cuda=False, mask=None):
-    """ Test accuracy given net and data. """
+    """
+    Test accuracy given a model and the test data.
+
+        Args:
+            model (nn.Module): the pytorch model to test.
+            criterion (func): loss function.
+            batch_size (int): mini-batch size.
+            test_x (tensor): test data.
+            test_y (tensor): test labels.
+            test_it (int): test iterations.
+            use_cuda (bool): if we want to use gpu or cpu.
+            mask (bool): if we want to maks out some classes from the results.
+        Returns:
+            ave_loss (float): average loss across the test set.
+            acc (float): average accuracy.
+            accs (list): average accuracy for class.
+    """
 
     correct_cnt, ave_loss = 0, 0
     model = maybe_cuda(model, use_cuda=use_cuda)
@@ -83,11 +98,33 @@ def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
 
 
 def train_net(optimizer, model, criterion, mb_size, x, y, t,
-              train_ep, preproc=None, use_cuda=True, mask=None):
-    """ Train net from memory using pytorch """
+              train_ep, preproc=None, use_cuda=True, mask=None,
+              record_stats=False):
+    """
+    Train a Pytorch model from pre-loaded tensors.
+
+        Args:
+            optimizer (object): the pytorch optimizer.
+            model (object): the pytorch model to train.
+            criterion (func): loss function.
+            mb_size (int): mini-batch size.
+            x (tensor): train data.
+            y (tensor): train labels.
+            t (int): task label.
+            train_ep (int): number of training epochs.
+            preproc (func): test iterations.
+            use_cuda (bool): if we want to use gpu or cpu.
+            mask (bool): if we want to maks out some classes from the results.
+            record_stats (bool): if we want to save collect sparsity stats.
+        Returns:
+            ave_loss (float): average loss across the train set.
+            acc (float): average accuracy over training.
+            stats (dict): dictionary of several stats collected.
+    """
 
     cur_ep = 0
     cur_train_t = t
+    stats = {'perc_on_avg': [], 'perc_on_std': [], 'on_idxs': []}
 
     if preproc:
         x = preproc(x)
@@ -147,16 +184,38 @@ def train_net(optimizer, model, criterion, mb_size, x, y, t,
 
         cur_ep += 1
 
-        print("Average active units: {}%, std {}%: ".format(
-              np.mean(model.active_perc_list), np.std(model.active_perc_list))
-        )
+        if record_stats:
+            perc_on_avg = np.mean(model.active_perc_list)
+            perc_on_std = np.std(model.active_perc_list)
 
-    return ave_loss, acc
+            print(
+                "Average active units: {}%, std {}%: "
+                .format(perc_on_avg, perc_on_std)
+            )
+
+            stats['perc_on_avg'].append(perc_on_avg)
+            stats['perc_on_std'].append(perc_on_std)
+
+    stats['on_idxs'] = model.on_idxs
+
+    return ave_loss, acc, stats
 
 
 def preprocess_imgs(img_batch, scale=True, norm=True, channel_first=True):
-    """ Here we get a batch of PIL imgs and we return them normalized as for
-        the pytorch pre-trained models. """
+    """
+    Here we get a batch of PIL imgs and we return them normalized as for
+    the pytorch pre-trained models.
+
+        Args:
+            img_batch (tensor): batch of images.
+            scale (bool): if we want to scale the images between 0 an 1.
+            channel_first (bool): if the channel dimension is before of after
+                                  the other dimensions (width and height).
+            norm (bool): if we want to normalize them.
+        Returns:
+            tensor: pre-processed batch.
+
+    """
 
     if scale:
         # convert to float in [0, 1]
@@ -176,57 +235,47 @@ def preprocess_imgs(img_batch, scale=True, norm=True, channel_first=True):
 
 
 def maybe_cuda(what, use_cuda=True, **kw):
-    """ Moves `what` to CUDA and returns it, if `use_cuda` and it's available.
     """
+    Moves `what` to CUDA and returns it, if `use_cuda` and it's available.
+
+        Args:
+            what (object): any object to move to eventually gpu
+            use_cuda (bool): if we want to use gpu or cpu.
+        Returns
+            object: the same object but eventually moved to gpu.
+    """
+
     if use_cuda is not False and torch.cuda.is_available():
         what = what.cuda()
     return what
 
 
-def change_lr(optimizer, lr):
-    """Change the learning rate of the optimizer"""
+def test_multitask(
+        model, test_set, mb_size, preproc=None, use_cuda=True, multi_heads=[],
+        mask=False):
+    """
+    Test a model considering that the test set is composed of multiple tests
+    one for each task.
 
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-def set_classifier(model, weigth, bias, clas=None):
-    """ Change weights and biases of the last layer in the network. """
-
-    if clas is None:
-        # model.classifier.weight.data = torch.from_numpy(weigth).float()
-        # model.classifier.bias.data = torch.from_numpy(bias).float()
-        model.classifier = torch.nn.Linear(512, 10)
-
-    else:
-        raise NotImplemented
-
-
-def reset_classifier(model, val=0, std=None):
-    """ Set weights and biases of the last layer in the network to zero. """
-
-    weights = np.zeros_like(model.classifier.weight.data.numpy())
-    biases = np.zeros_like(model.classifier.bias.data.numpy())
-
-    if std:
-        weights = np.random.normal(
-            val, std, model.classifier.weight.data.numpy().shape
-        )
-    else:
-        weights.fill(val)
-
-    biases.fill(0)
-    # self.net.classifier[-1].weight.data.normal_(0.0, 0.02)
-    # self.net.classifier[-1].bias.data.fill_(0)
-
-    set_classifier(model, weights, biases)
-
-
-def test_multitask(model, test_set, mb_size, preproc, use_cuda=True):
+        Args:
+            model (nn.Module): the pytorch model to test.
+            test_set (list): list of (x,y,t) test tuples.
+            mb_size (int): mini-batch size.
+            preproc (func): image preprocess function.
+            use_cuda (bool): if we want to use gpu or cpu.
+            mask (bool): if we want to maks out some classes from the results.
+            multi_heads (list): ordered list of "heads" to be used for each
+                                task.
+        Returns:
+            stats (float): collected stasts of the test including average and
+                           per class accuracies.
+    """
 
     model.eval()
 
     acc_x_task = []
+    stats = {'accs': []}
+
     for (x, y), t in test_set:
 
         # reduce test set 20 substampling
@@ -237,40 +286,65 @@ def test_multitask(model, test_set, mb_size, preproc, use_cuda=True):
         if preproc:
             x = preproc(x)
 
-        (train_x, train_y), it_x_ep = pad_data(
+        (test_x, test_y), it_x_ep = pad_data(
             [x, y], mb_size
         )
+
+        if multi_heads != [] and len(multi_heads) > t:
+            # we can use the stored head
+            print("Using head: ", t)
+            model.classifier = multi_heads[t]
 
         model = maybe_cuda(model, use_cuda=use_cuda)
         acc = None
 
-        train_x = torch.from_numpy(train_x).type(torch.FloatTensor)
-        train_y = torch.from_numpy(train_y).type(torch.LongTensor)
+        test_x = torch.from_numpy(test_x).type(torch.FloatTensor)
+        test_y = torch.from_numpy(test_y).type(torch.LongTensor)
 
         correct_cnt, ave_loss = 0, 0
 
         with torch.no_grad():
+
+            minclass = np.min(y)
+            maxclass = np.max(y)
 
             for it in range(it_x_ep):
 
                 start = it * mb_size
                 end = (it + 1) * mb_size
 
-                x_mb = maybe_cuda(train_x[start:end], use_cuda=use_cuda)
-                y_mb = maybe_cuda(train_y[start:end], use_cuda=use_cuda)
+                x_mb = maybe_cuda(test_x[start:end], use_cuda=use_cuda)
+                y_mb = maybe_cuda(test_y[start:end], use_cuda=use_cuda)
                 logits = model(x_mb)
+
+                if mask:
+                    totclass = logits.size(1)
+                    mymask = np.asarray([0] * totclass)
+                    mymask[minclass:maxclass+1] = 1
+                    mymask = maybe_cuda(torch.from_numpy(mymask),
+                                        use_cuda=use_cuda)
+                    # print(mymask)
+                    logits = mymask * logits
 
                 _, pred_label = torch.max(logits, 1)
                 correct_cnt += (pred_label == y_mb).sum()
 
-            acc = correct_cnt.item() / y.shape[0]
+            acc = correct_cnt.item() / test_y.shape[0]
 
         print('TEST Acc. Task {}==>>> acc: {:.3f}'.format(t, acc))
         acc_x_task.append(acc)
+        stats['accs'].append(acc)
 
     print("------------------------------------------")
     print("Avg. acc:", np.mean(acc_x_task))
     print("------------------------------------------")
+
+    # reset the head for the next batch
+    if multi_heads:
+        print("classifier reset...")
+        model.reset_classifier()
+
+    return stats
 
 
 
